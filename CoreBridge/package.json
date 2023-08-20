@@ -1,0 +1,21 @@
+{
+  "name": "corebridge",
+  "version": "1.0.0",
+  "description": "Core dao cross chain",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Haley",
+  "license": "ISC",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^2.0.2",
+    "@nomiclabs/hardhat-ethers": "^2.2.3",
+    "ethers": "^5.7.2",
+    "hardhat": "^2.14.0"
+  },
+  "dependencies": {
+    "@layerzerolabs/solidity-examples": "^0.0.10",
+    "@openzeppelin/contracts": "^4.9.0"
+  }
+}
