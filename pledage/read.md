@@ -14,18 +14,18 @@
 - **function provide(address customer,uint256 amount) external payable;**
 
 ```javascript
-struct User{
-    uint256 computility;  //用户算力，有18位精度
-    uint256 extractedCore; //用户通过挖矿已经提取的coy值多少core
-    uint256 rewardDebt; //这个忽略
-    uint256 award; //这是用户通过邀请获得的coy数量
-}
+    struct User{
+        uint256 computility;  //用户算力，有18位精度
+        uint256 extractedCore; //用户通过挖矿已经提取的coy值多少core
+        uint256 rewardDebt; //这个忽略
+        uint256 award; //这是用户通过邀请获得的coy数量
+    }
 
-struct Info{
-    User    user; //上述User结构体
-    address inv; //当前用户的邀请人地址
-    uint256 income; //用户挖矿的可提现coy数量
-}
+    struct Info{
+        User    user; //上述User结构体
+        address inv; //当前用户的邀请人地址
+        uint256 income; //用户挖矿的可提现coy数量
+    }
 
 ```
 
