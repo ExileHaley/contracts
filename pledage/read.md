@@ -1,6 +1,7 @@
 #### 合约地址：
 #### wcore地址：0x40375C92d9FAf44d2f9db9Bd9ba41a3317a2404f
 #### coy地址：0xf49e283b645790591aa51f4f6DAB9f0B069e8CdD
+```javascript
 #### 方法列表
 
 1. 绑定邀请人地址，_inviter邀请人地址
@@ -13,7 +14,7 @@
 3. 质押，customer是当前用户地址，amount是coy数量，msg.value要求传入core数量，所以这里需要coy授权，主币core不授权，当前函数会通过上述方法进行两者价值相等校验
 **function provide(address customer,uint256 amount) external payable;**
 
-```javascript
+
     struct User{
         uint256 computility;  //用户算力，有18位精度
         uint256 extractedCore; //用户通过挖矿已经提取的coy值多少core
@@ -27,7 +28,7 @@
         uint256 income; //用户挖矿的可提现coy数量
     }
 
-```
+
 
 4. 获取用户详细信息，返回值跟上述结构体对应
 **function getUserInfo(address customer) external view returns(Info memory)**
@@ -38,3 +39,4 @@
 
 6. 用户提取邀请奖励coy，customer是当前用户地址，amount是coy数量
 **function claimAward(address customer, uint256 amount) external**
+```
