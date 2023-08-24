@@ -4,7 +4,44 @@ pragma solidity ^0.8.0;
 
 contract PledageStor{
     address public admin;
+    address public implementation;
 }
+
+contract Proxy is PledageStor{
+    receive() external payable {}
+    constructor() {
+        admin = msg.sender;
+    }
+
+    modifier onlyOwner(){
+        require(admin == msg.sender,"Proxy:Caller is not owner");
+        _;
+    }
+
+    function _updateAdmin(address _admin) public onlyOwner{
+        admin = _admin;
+    }
+
+    function setImplementation(address newImplementation) public onlyOwner{  
+        implementation = newImplementation;
+    }
+
+    fallback() payable external {
+        // delegate all other functions to current implementation
+        (bool success, ) = implementation.delegatecall(msg.data);
+
+        assembly {
+              let free_mem_ptr := mload(0x40)
+              returndatacopy(free_mem_ptr, 0, returndatasize())
+
+              switch success
+              case 0 { revert(free_mem_ptr, returndatasize()) }
+              default { return(free_mem_ptr, returndatasize()) }
+        }
+    }
+}
+
+
 
 contract PledageStorV1 is PledageStor{
     address public wcore;
@@ -17,8 +54,9 @@ contract PledageStorV1 is PledageStor{
     struct User{
         uint256 computility;
         uint256 extractedCore;
-        uint256 reward;
+        // uint256 reward;
         uint256 rewardDebt;
+        uint256 award;
     }
     mapping(address => User) public userInfo;
     mapping(address => address) public inivter;
@@ -27,6 +65,12 @@ contract PledageStorV1 is PledageStor{
     uint256 perBlockReward;
     uint256 lastUpdateBlock;
     uint256 decimals;
+    bool    permission;
+
+    struct Info{
+        User    user;
+        uint256 income;
+    }
 }
 
 interface IUniswapV2Router{
@@ -131,6 +175,11 @@ contract BatchPledage is PledageStorV1{
         _;
     }
 
+    modifier permit(){
+        require(!permission, "Do not approve the current operation");
+        _;
+    }
+
     function initialize(address _uniswapV2Router,address token,address _receiver,uint256 _dayReward) external onlyOwner{
         wcore = IUniswapV2Router(_uniswapV2Router).WETH();
         token = token;
@@ -143,8 +192,12 @@ contract BatchPledage is PledageStorV1{
         lastUpdateBlock = block.number;
     }
 
-    function setInfo(address _receiver,uint256 _dayReward) external onlyOwner{
+    function setInfo(address _receiver) external onlyOwner{
         receiver = _receiver;
+        
+    }
+
+    function setPerBlockReward(uint256 _dayReward) external onlyOwner{
         perBlockReward = _dayReward / (86400 / 3);
     }
 
@@ -152,7 +205,7 @@ contract BatchPledage is PledageStorV1{
         admin = _admin;
     }
 
-    function provide(address customer,uint256 amount) external payable{
+    function provide(address customer,uint256 amount) external payable permit{
         require(amount == getAmountOut(msg.value,wcore,token),"BatchPledage:Invalid provide token and core amount");
         sendHelper(customer, amount, msg.value);
         updateFarm();
@@ -169,24 +222,26 @@ contract BatchPledage is PledageStorV1{
     }
 
     function sendHelper(address user,uint256 amount, uint256 value) public{
-        //token transfer
+        //token award
         {
             uint256 tokenAmount = amount;
             address inivter0 = inivter[user];
             if(inivter0 != address(0)){
+                User storage user0 = userInfo[inivter0];
                 uint256 rewardFee0 = tokenAmount * 20 / 100;
-                TransferHelper.safeTransferFrom(token, user, inivter0,rewardFee0);
+                user0.award += rewardFee0;
                 tokenAmount -= rewardFee0;
                 address inivter1 = inivter[inivter0];
                 if(inivter1 != address(0)){
                     uint256 rewardFee1 = tokenAmount * 10 / 100;
-                    TransferHelper.safeTransferFrom(token, user, inivter1,rewardFee1);
+                    User storage user1 = userInfo[inivter1];
+                    user1.award += rewardFee1;
                     tokenAmount -= rewardFee1;
                 }
             }
             TransferHelper.safeTransferFrom(token, user, dead, tokenAmount);
         }
-        //core transfer
+        //core transfer and swap
         {
             uint256 swapValue = value * 60 / 100;
             TransferHelper.safeTransferETH(address(this), swapValue);
@@ -219,7 +274,7 @@ contract BatchPledage is PledageStorV1{
     function getUserCurrentReward(address customer) public view returns(uint256){
         uint256 currentBlockReward = getCurrentBlockReward();
         User storage user = userInfo[customer];
-        if(user.extractedCore >= user.computility * 3) return 0;
+        if(user.extractedCore >= user.computility * 3 || user.computility == 0) return 0;
         else{
             uint256 difference = user.computility * 3 - user.extractedCore;
             uint256 currentReward = (user.computility * currentBlockReward - user.rewardDebt) / decimals;
@@ -243,7 +298,7 @@ contract BatchPledage is PledageStorV1{
         lastUpdateBlock = block.number;
     }
 
-    function claim(address customer,uint256 amount) external{
+    function claim(address customer,uint256 amount) external permit{
         uint256 deserved = getUserCurrentReward(customer);
         require(amount <= deserved && amount > 0,"Claim:Invalid claim amount");
         updateFarm();
@@ -254,4 +309,20 @@ contract BatchPledage is PledageStorV1{
         user.rewardDebt = user.rewardDebt + (amount * decimals);
     }
 
+    function claimAward(address customer, uint256 amount) external permit{
+        User storage user = userInfo[customer];
+        require(amount <= user.award,"Claim:Invalid award amount");
+        TransferHelper.safeTransfer(token, customer, amount);
+        user.award -= amount;
+    }
+
+    function getUserInfo(address customer) external view returns(Info memory){
+        return Info(userInfo[customer],getUserCurrentReward(customer));
+    }
+
 }
+
+//uniswapV2Router:0x4ee133a21B2Bd8EC28d41108082b850B71A3845e
+//token:0xf49e283b645790591aa51f4f6DAB9f0B069e8CdD
+//000000000000000000
+//coreReceiver:
