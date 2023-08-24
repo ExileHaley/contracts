@@ -54,7 +54,6 @@ contract PledageStorV1 is PledageStor{
     struct User{
         uint256 computility;
         uint256 extractedCore;
-        // uint256 reward;
         uint256 rewardDebt;
         uint256 award;
     }
@@ -69,6 +68,7 @@ contract PledageStorV1 is PledageStor{
 
     struct Info{
         User    user;
+        address inv;
         uint256 income;
     }
 }
@@ -93,10 +93,12 @@ library TransferHelper {
         (bool success, bytes memory data) = token.call(abi.encodeWithSelector(0xa9059cbb, to, value));
         require(success && (data.length == 0 || abi.decode(data, (bool))), 'TransferHelper: TRANSFER_FAILED');
     }
+
     function safeTransferFrom(address token, address from, address to, uint value) internal {
         (bool success, bytes memory data) = token.call(abi.encodeWithSelector(0x23b872dd, from, to, value));
         require(success && (data.length == 0 || abi.decode(data, (bool))), 'TransferHelper: TRANSFER_FROM_FAILED');
     }
+
     function safeTransferETH(address to, uint value) internal {
         (bool success,) = to.call{value:value}(new bytes(0));
         require(success, 'TransferHelper: ETH_TRANSFER_FAILED');
@@ -175,7 +177,7 @@ contract BatchPledage is PledageStorV1{
         _;
     }
 
-    modifier permit(){
+    modifier onlyPermit(){
         require(!permission, "Do not approve the current operation");
         _;
     }
@@ -209,15 +211,25 @@ contract BatchPledage is PledageStorV1{
         permission = _isPermit;
     }
 
-    function provide(address customer,uint256 amount) external payable permit{
+    function bind(address _inviter) external onlyPermit{
+        require(_inviter != address(0) && inivter[msg.sender] == address(0),"Invalid inviter");
+        if (_inviter != admin) {
+            User memory user = userInfo[_inviter];
+            require(user.computility > 0,"BatchPledage:Not eligible to invite new users");
+        }
+        inivter[msg.sender] = _inviter;
+    }
+
+    function provide(address customer,uint256 amount) external payable onlyPermit{
+        require(inivter[customer] != address(0),"BatchPledage:The address of the inviter must be bound");
         require(amount == getAmountOut(msg.value,wcore,token),"BatchPledage:Invalid provide token and core amount");
         sendHelper(customer, amount, msg.value);
-        updateFarm();
+        if (totalComputility > 0) updateFarm();
         User storage user = userInfo[customer];
-        user.computility = user.computility + (msg.value * 2);
-        user.rewardDebt = user.rewardDebt + (msg.value * 2 * perStakingReward);
-        totalComputility = totalComputility + (msg.value * 2);
-
+        uint256 computilities = msg.value * 2;
+        user.computility += computilities;
+        user.rewardDebt = user.rewardDebt + computilities * perStakingReward;
+        totalComputility += computilities;
     }
 
     function getAmountOut(uint256 amountIn,address token0,address token1) public view returns(uint256 amountOut){
@@ -302,7 +314,7 @@ contract BatchPledage is PledageStorV1{
         lastUpdateBlock = block.number;
     }
 
-    function claim(address customer,uint256 amount) external permit{
+    function claim(address customer,uint256 amount) external onlyPermit{
         uint256 deserved = getUserCurrentReward(customer);
         require(amount <= deserved && amount > 0,"Claim:Invalid claim amount");
         updateFarm();
@@ -313,7 +325,7 @@ contract BatchPledage is PledageStorV1{
         user.rewardDebt = user.rewardDebt + (amount * decimals);
     }
 
-    function claimAward(address customer, uint256 amount) external permit{
+    function claimAward(address customer, uint256 amount) external onlyPermit{
         User storage user = userInfo[customer];
         require(amount <= user.award,"Claim:Invalid award amount");
         TransferHelper.safeTransfer(token, customer, amount);
@@ -321,7 +333,7 @@ contract BatchPledage is PledageStorV1{
     }
 
     function getUserInfo(address customer) external view returns(Info memory){
-        return Info(userInfo[customer],getUserCurrentReward(customer));
+        return Info(userInfo[customer],inivter[customer],getUserCurrentReward(customer));
     }
 
 }
@@ -330,3 +342,5 @@ contract BatchPledage is PledageStorV1{
 //token:0xf49e283b645790591aa51f4f6DAB9f0B069e8CdD
 //000000000000000000
 //coreReceiver:
+
+
