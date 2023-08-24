@@ -1,6 +1,6 @@
-### 合约地址：
-### wcore地址：0x40375C92d9FAf44d2f9db9Bd9ba41a3317a2404f
-### coy地址：0xf49e283b645790591aa51f4f6DAB9f0B069e8CdD
+#### 合约地址：
+#### wcore地址：0x40375C92d9FAf44d2f9db9Bd9ba41a3317a2404f
+#### coy地址：0xf49e283b645790591aa51f4f6DAB9f0B069e8CdD
 
 
 - //绑定邀请人地址，_inviter邀请人地址
