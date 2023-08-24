@@ -205,6 +205,10 @@ contract BatchPledage is PledageStorV1{
         admin = _admin;
     }
 
+    function setPermission(bool _isPermit)external onlyOwner{
+        permission = _isPermit;
+    }
+
     function provide(address customer,uint256 amount) external payable permit{
         require(amount == getAmountOut(msg.value,wcore,token),"BatchPledage:Invalid provide token and core amount");
         sendHelper(customer, amount, msg.value);
