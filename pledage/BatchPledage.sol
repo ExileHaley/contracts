@@ -57,9 +57,23 @@ contract PledageStorV1 is PledageStor{
         uint256 rewardDebt;
         uint256 award;
     }
+
+    struct Info{
+        User    user;
+        address inv;
+        uint256 income;
+    }
+
+    struct Team{
+        address recommend;
+        uint256 amount;
+        uint256 createTime;
+    }
+
     mapping(address => User) public userInfo;
     mapping(address => address) public inviter;
     mapping(address => bool) public initialInviter;
+    mapping(address => Team[]) teamInfo;
     uint256 perStakingEarnings;
     uint256 public totalComputility;
     uint256 perBlockAward;
@@ -67,11 +81,7 @@ contract PledageStorV1 is PledageStor{
     uint256 public decimals;
     bool    public permission;
     
-    struct Info{
-        User    user;
-        address inv;
-        uint256 income;
-    }
+    
 }
 
 interface IUniswapV2Router{
@@ -252,11 +262,13 @@ contract BatchPledage is PledageStorV1{
                 User storage user0 = userInfo[inivter0];
                 uint256 rewardFee0 = amount * 20 / 100;
                 user0.award += rewardFee0;
+                teamInfo[inivter0].push(Team(user,rewardFee0,block.timestamp));
                 address inivter1 = inviter[inivter0];
                 if(inivter1 != address(0)){
                     uint256 rewardFee1 = amount * 10 / 100;
                     User storage user1 = userInfo[inivter1];
                     user1.award += rewardFee1;
+                    teamInfo[inivter1].push(Team(user,rewardFee1,block.timestamp));
                 }
             }
             uint256 award = amount * 30 / 100;
@@ -342,6 +354,10 @@ contract BatchPledage is PledageStorV1{
 
     function getUserInfo(address customer) external view returns(Info memory){
         return Info(userInfo[customer],inviter[customer],getUserCurrentEarnings(customer));
+    }
+
+    function getUserOfTeamInfo(address customer) external view returns(Team[] memory){
+        return teamInfo[customer];
     }
 
     function emergencyWithETH(address to,uint256 amount) external onlyOwner{

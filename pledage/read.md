@@ -43,4 +43,12 @@ function claim(address customer,uint256 amount) external;
 
 6. 用户提取邀请奖励coy，customer是当前用户地址，amount是coy数量
 function claimAward(address customer, uint256 amount) external;
+
+    struct Team{
+        address recommend; //团队新参与的用户地址
+        uint256 amount; //该用户提供的奖励数量coy，有精度
+        uint256 createTime; //时间戳，自己转一下
+    }
+7. 获取当前用户的团队奖励，数据结构如上所示，返回是一个数组，其中的每一个元素都是一个Team
+function getUserOfTeamInfo(address customer) external view returns(Team[] memory)
 ```
