@@ -58,14 +58,15 @@ contract PledageStorV1 is PledageStor{
         uint256 award;
     }
     mapping(address => User) public userInfo;
-    mapping(address => address) public inivter;
-    uint256 perStakingReward;
+    mapping(address => address) public inviter;
+    mapping(address => bool) public initialInviter;
+    uint256 perStakingEarnings;
     uint256 public totalComputility;
     uint256 perBlockAward;
     uint256 lastUpdateBlock;
     uint256 public decimals;
     bool    public permission;
-
+    
     struct Info{
         User    user;
         address inv;
@@ -182,16 +183,21 @@ contract BatchPledage is PledageStorV1{
         _;
     }
 
-    function initialize(address _uniswapV2Router,address _token,address _receiver,uint256 _dayReward) external onlyOwner{
-        wcore = IUniswapV2Router(_uniswapV2Router).WETH();
-        token = _token;
+    function initialize(address _receiver,uint256 _dayReward,address[] calldata _inviters) external onlyOwner{
+        uniswapV2Router = 0x4ee133a21B2Bd8EC28d41108082b850B71A3845e;
+        wcore = IUniswapV2Router(uniswapV2Router).WETH();
+        token = 0xf49e283b645790591aa51f4f6DAB9f0B069e8CdD;
         receiver = _receiver;
         dead = 0x000000000000000000000000000000000000dEaD;
-        uniswapV2Router = _uniswapV2Router;
-        uniswapV2Factory = IUniswapV2Router(_uniswapV2Router).factory();
+        uniswapV2Factory = IUniswapV2Router(uniswapV2Router).factory();
         perBlockAward = _dayReward / (86400 / 3);
         decimals = 1e12;
         lastUpdateBlock = block.number;
+        for(uint i=0; i<_inviters.length; i++){
+            if(!initialInviter[_inviters[i]]){
+                initialInviter[_inviters[i]] = true;
+            }
+        }
     }
 
     function setInfo(address _receiver) external onlyOwner{
@@ -212,24 +218,24 @@ contract BatchPledage is PledageStorV1{
     }
 
     function bind(address _inviter) external onlyPermit{
-        require(_inviter != address(0) && inivter[msg.sender] == address(0),"Invalid inviter");
-        if (_inviter != admin) {
+        require(_inviter != address(0) && inviter[msg.sender] == address(0),"Invalid inviter");
+        if (!initialInviter[_inviter]) {
             User memory user = userInfo[_inviter];
             require(user.computility > 0,"BatchPledage:Not eligible to invite new users");
         }
-        inivter[msg.sender] = _inviter;
+        inviter[msg.sender] = _inviter;
     }
 
     function provide(address customer) external payable onlyPermit{
         //这里需要补充msg.value的值最小为100
-        require(inivter[customer] != address(0),"BatchPledage:The address of the inviter must be bound");
+        require(inviter[customer] != address(0),"BatchPledage:The address of the inviter must be bound");
         uint256 amount = getAmountOut(msg.value,wcore,token);
         sendHelper(customer, amount, msg.value);
         if (totalComputility > 0) updateFarm();
         User storage user = userInfo[customer];
         uint256 computilities = msg.value * 2;
         user.computility += computilities;
-        user.rewardDebt = user.rewardDebt + computilities * perStakingReward;
+        user.rewardDebt = user.rewardDebt + computilities * perStakingEarnings;
         totalComputility += computilities;
     }
 
@@ -241,24 +247,21 @@ contract BatchPledage is PledageStorV1{
     function sendHelper(address user,uint256 amount, uint256 value) public{
         //token award
         {   
-            //这里代币写的有问题，30%并没有直接转进来
-            // uint256 tokenAmount = amount;
-            // address inivter0 = inivter[user];
-            // if(inivter0 != address(0)){
-            //     User storage user0 = userInfo[inivter0];
-            //     uint256 rewardFee0 = tokenAmount * 20 / 100;
-            //     user0.award += rewardFee0;
-            //     tokenAmount -= rewardFee0;
-            //     address inivter1 = inivter[inivter0];
-            //     if(inivter1 != address(0)){
-            //         uint256 rewardFee1 = tokenAmount * 10 / 100;
-            //         User storage user1 = userInfo[inivter1];
-            //         user1.award += rewardFee1;
-            //         tokenAmount -= rewardFee1;
-            //     }
-            // }
-            // TransferHelper.safeTransferFrom(token, user, address(this), tokenAmount);
-            // TransferHelper.safeTransferFrom(token, user, dead, tokenAmount);
+            address inivter0 = inviter[user];
+            if(inivter0 != address(0)){
+                User storage user0 = userInfo[inivter0];
+                uint256 rewardFee0 = amount * 20 / 100;
+                user0.award += rewardFee0;
+                address inivter1 = inviter[inivter0];
+                if(inivter1 != address(0)){
+                    uint256 rewardFee1 = amount * 10 / 100;
+                    User storage user1 = userInfo[inivter1];
+                    user1.award += rewardFee1;
+                }
+            }
+            uint256 award = amount * 30 / 100;
+            TransferHelper.safeTransferFrom(token, user, address(this), award);
+            TransferHelper.safeTransferFrom(token, user, dead, amount - award);
         }
         //core transfer and swap
         {
@@ -284,23 +287,23 @@ contract BatchPledage is PledageStorV1{
         );
     }
 
-    function getCurrentPerStakingReward() public view returns(uint256){
+    function getCurrentPerStakingEarnings() public view returns(uint256){
         if(block.number <= lastUpdateBlock){
-            return perStakingReward;
+            return perStakingEarnings;
         }
-        uint256 middleReward = (block.number - lastUpdateBlock) * perBlockAward * decimals / totalComputility;
-        return middleReward + perStakingReward;
+        uint256 middleStakingEarnings = (block.number - lastUpdateBlock) * perBlockAward * decimals / totalComputility;
+        return middleStakingEarnings + perStakingEarnings;
     }
 
-    function getUserCurrentReward(address customer) public view returns(uint256){
-        uint256 currentPerStakingReward = getCurrentPerStakingReward();
+    function getUserCurrentEarnings(address customer) public view returns(uint256){
+        uint256 currentPerStakingEarnings = getCurrentPerStakingEarnings();
         User storage user = userInfo[customer];
         if(user.extractedCore >= user.computility * 3 || user.computility == 0) return 0;
         else{
             uint256 difference = user.computility * 3 - user.extractedCore;
-            uint256 currentReward = (user.computility * currentPerStakingReward - user.rewardDebt) / decimals;
+            uint256 currentEarnings = (user.computility * currentPerStakingEarnings - user.rewardDebt) / decimals;
             uint256 deserved = getAmountOut(difference, wcore, token);
-            if(currentReward <= deserved) return currentReward;
+            if(currentEarnings <= deserved) return currentEarnings;
             else return deserved;
         }
     }
@@ -314,13 +317,13 @@ contract BatchPledage is PledageStorV1{
         if(totalComputility >= 10000e18) perBlockAward = perBlockAward * 50 / 100;
         if(totalComputility >= 30000e18) perBlockAward = perBlockAward * 70 / 100;
 
-        uint256 middleReward = (block.number - lastUpdateBlock) * perBlockAward * decimals / totalComputility;
-        perStakingReward += middleReward;
+        uint256 middlePerStakingEarnings = (block.number - lastUpdateBlock) * perBlockAward * decimals / totalComputility;
+        perStakingEarnings += middlePerStakingEarnings;
         lastUpdateBlock = block.number;
     }
 
     function claim(address customer,uint256 amount) external onlyPermit{
-        uint256 deserved = getUserCurrentReward(customer);
+        uint256 deserved = getUserCurrentEarnings(customer);
         require(amount <= deserved && amount > 0,"Claim:Invalid claim amount");
         updateFarm();
         uint256 extracted = getAmountOut(amount, token, wcore);
@@ -338,7 +341,7 @@ contract BatchPledage is PledageStorV1{
     }
 
     function getUserInfo(address customer) external view returns(Info memory){
-        return Info(userInfo[customer],inivter[customer],getUserCurrentReward(customer));
+        return Info(userInfo[customer],inviter[customer],getUserCurrentEarnings(customer));
     }
 
     function emergencyWithETH(address to,uint256 amount) external onlyOwner{
@@ -351,12 +354,5 @@ contract BatchPledage is PledageStorV1{
 
 }
 
-//uniswapV2Router:0x4ee133a21B2Bd8EC28d41108082b850B71A3845e
-//token:0xf49e283b645790591aa51f4f6DAB9f0B069e8CdD
 //000000000000000000
 //coreReceiver:
-//pledage:
-//proxy:
-
-//19.134936421088622472
-//0.347226909722222221

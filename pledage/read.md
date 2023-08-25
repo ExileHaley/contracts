@@ -9,13 +9,14 @@
 function bind(address _inviter) external;
 
 2. 通过输入core数量获取同时需要质押的COY数量，amountIn => core数量 / token0 => wcore地址 / token1 => coy地址，
-   通过输入coy数量获取同时需要质押的core数量，amountIn => coy数量 / token0 => coy地址 / token1 => wcore地址
+   通过输入coy数量获取同时需要质押的core数量，amountIn => coy数量 / token0 => coy地址 / token1 => wcore地址，
+   传入的amountIn如果有精度，返回的数量也会包含精度
 function getAmountOut(uint256 amountIn,address token0,address token1) public view returns(uint256 amountOut);
 
 
-3. 质押，customer是当前用户地址，amount是coy数量，msg.value要求传入core数量，所以这里需要coy授权，主币core不授权，
+3. 质押，customer是当前用户地址，msg.value要求传入core数量(注意有payable标识)，所以这里需要coy授权，主币core不授权，
    当前函数会通过上述方法进行两者价值相等校验
-function provide(address customer,uint256 amount) external payable;
+function provide(address customer) external payable;
 
 
     struct User{
@@ -28,7 +29,7 @@ function provide(address customer,uint256 amount) external payable;
     struct Info{
         User    user; //上述User结构体
         address inv; //当前用户的邀请人地址
-        uint256 income; //用户挖矿的可提现coy数量
+        uint256 income; //用户挖矿收益，也就是收益可提现的coy数量
     }
 
 
