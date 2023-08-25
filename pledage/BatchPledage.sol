@@ -300,9 +300,8 @@ contract BatchPledage is PledageStorV1{
     }
 
     function getCurrentPerStakingEarnings() public view returns(uint256){
-        if(block.number <= lastUpdateBlock){
-            return perStakingEarnings;
-        }
+        if (totalComputility == 0) return 0;
+        if(block.number <= lastUpdateBlock) return perStakingEarnings;
         uint256 middleStakingEarnings = (block.number - lastUpdateBlock) * perBlockAward * decimals / totalComputility;
         return middleStakingEarnings + perStakingEarnings;
     }
@@ -322,7 +321,8 @@ contract BatchPledage is PledageStorV1{
 
     function updateFarm() public{
 
-        if(block.number <= lastUpdateBlock){
+        if(block.number <= lastUpdateBlock || totalComputility == 0){
+            lastUpdateBlock = block.number;
             return;
         }
 
@@ -371,4 +371,8 @@ contract BatchPledage is PledageStorV1{
 }
 
 //000000000000000000
-//coreReceiver:
+// receiver:0xc7384Aaf0c8231AfE211e52f129ae3B29f358F6A
+
+//["0xc9fc71fF0Ad342d7D0E6cCBD7C4234E98aC83369","0x0d17B54dc4507D0Abf27bd49cfB248b7eE4056d0","0x427DfD8Ec77a9226E038Ada1A12055eDc544B440"]
+//pledage:0x8de0201796591368494CF0fB819Faf9656Ea2417
+//proxy:0x8C5dDb0006cFa9C4478f65D9e1ccD24c3843bCbC

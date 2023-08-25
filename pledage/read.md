@@ -1,4 +1,4 @@
-#### 合约地址：
+#### 合约地址：0x8C5dDb0006cFa9C4478f65D9e1ccD24c3843bCbC
 #### wcore地址：0x40375C92d9FAf44d2f9db9Bd9ba41a3317a2404f
 #### coy地址：0xf49e283b645790591aa51f4f6DAB9f0B069e8CdD
 
