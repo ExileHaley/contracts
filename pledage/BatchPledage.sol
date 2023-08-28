@@ -325,9 +325,10 @@ contract BatchPledage is PledageStorV1{
             lastUpdateBlock = block.number;
             return;
         }
-
-        if(totalComputility >= 10000e18) perBlockAward = perBlockAward * 50 / 100;
-        if(totalComputility >= 30000e18) perBlockAward = perBlockAward * 70 / 100;
+        bool first = totalComputility >= 30000e18 && totalComputility <= 50000e18 && perBlockAward < 7000e18 / (86400 / 3);
+        if(isAdd) perBlockAward = 7000e18 / (86400 / 3);
+        bool two = totalComputility >= 50000e18 && perBlockAward < 10000e18 / (86400 / 3);
+        if(two) perBlockAward = 10000e18 / (86400 / 3);
 
         uint256 middlePerStakingEarnings = (block.number - lastUpdateBlock) * perBlockAward * decimals / totalComputility;
         perStakingEarnings += middlePerStakingEarnings;
