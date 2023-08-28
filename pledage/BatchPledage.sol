@@ -80,7 +80,9 @@ contract PledageStorV1 is PledageStor{
     uint256 lastUpdateBlock;
     uint256 public decimals;
     bool    public permission;
-    
+
+    enum Base{inital,first,two}
+    mapping(Base => uint256) blockAwardBase;
     
 }
 
@@ -193,14 +195,18 @@ contract BatchPledage is PledageStorV1{
         _;
     }
 
-    function initialize(address _receiver,uint256 _dayReward,address[] calldata _inviters) external onlyOwner{
+    function initialize(address _receiver,uint256[] calldata _bases,address[] calldata _inviters) external onlyOwner{
+        require(_bases.length == 3,"BatchPledage:Invalid block bases");
         uniswapV2Router = 0x4ee133a21B2Bd8EC28d41108082b850B71A3845e;
         wcore = IUniswapV2Router(uniswapV2Router).WETH();
         token = 0xf49e283b645790591aa51f4f6DAB9f0B069e8CdD;
         receiver = _receiver;
         dead = 0x000000000000000000000000000000000000dEaD;
         uniswapV2Factory = IUniswapV2Router(uniswapV2Router).factory();
-        perBlockAward = _dayReward / (86400 / 3);
+        perBlockAward = _bases[0] / (86400 / 3);
+        blockAwardBase[Base.inital] = _bases[0];
+        blockAwardBase[Base.first] = _bases[1];
+        blockAwardBase[Base.two] = _bases[2];
         decimals = 1e12;
         lastUpdateBlock = block.number;
         for(uint i=0; i<_inviters.length; i++){
@@ -325,10 +331,10 @@ contract BatchPledage is PledageStorV1{
             lastUpdateBlock = block.number;
             return;
         }
-        bool first = totalComputility >= 30000e18 && totalComputility <= 50000e18 && perBlockAward < 7000e18 / (86400 / 3);
-        if(isAdd) perBlockAward = 7000e18 / (86400 / 3);
-        bool two = totalComputility >= 50000e18 && perBlockAward < 10000e18 / (86400 / 3);
-        if(two) perBlockAward = 10000e18 / (86400 / 3);
+        bool first = totalComputility >= 30000e18 && totalComputility <= 50000e18 && perBlockAward < blockAwardBase[Base.first] / (86400 / 3);
+        if(first) perBlockAward = blockAwardBase[Base.first] / (86400 / 3);
+        bool two = totalComputility >= 50000e18 && perBlockAward < blockAwardBase[Base.two] / (86400 / 3);
+        if(two) perBlockAward = blockAwardBase[Base.two] / (86400 / 3);
 
         uint256 middlePerStakingEarnings = (block.number - lastUpdateBlock) * perBlockAward * decimals / totalComputility;
         perStakingEarnings += middlePerStakingEarnings;
@@ -373,7 +379,7 @@ contract BatchPledage is PledageStorV1{
 
 //000000000000000000
 // receiver:0xc7384Aaf0c8231AfE211e52f129ae3B29f358F6A
-
+//5000\7000\10000
 //["0xc9fc71fF0Ad342d7D0E6cCBD7C4234E98aC83369","0x0d17B54dc4507D0Abf27bd49cfB248b7eE4056d0","0x427DfD8Ec77a9226E038Ada1A12055eDc544B440"]
 //pledage:0x8de0201796591368494CF0fB819Faf9656Ea2417
 //proxy:0x8C5dDb0006cFa9C4478f65D9e1ccD24c3843bCbC
