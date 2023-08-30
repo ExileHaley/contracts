@@ -1,14 +1,5 @@
 ### document
 
-
-### 备注部分
-#### coreBridge是使用layerZero开发的跨链桥，支持core、bnb、ethereum三条链；
-#### ERC721优化和汇编理解，主要是以内联汇编的方式重写了整个erc721合约，然后找了一些内联汇编的例子深入理解EVM
-#### Knowhere之前公司开发的项目，主要用来学习hardhat测试以及代理合约
-#### mental_college_contract_sign_verification是帮助英国那面写的一个NFT合约，因为写的比较不错所以保留
-#### pledage是一个挖矿的合约
-#### token是一个代理合约下的代币合约
-
 ###### Library/EIP imp link:https://github.com/Vectorized/solady
 ###### EVM Playground:https://www.evm.codes/playground
 ###### Blockchain Doc:https://www.bcskill.com/
