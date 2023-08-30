@@ -16,6 +16,7 @@
 ###### ipfs节点服务器搭建:https://zhuanlan.zhihu.com/p/571203889
 ###### 修改go-ethereum共识算法:https://my.oschina.net/u/4316764/blog/3724328
 ###### eth链和浏览器部署:https://eth-dev-docs.readthedocs.io/en/latest/index.html
+###### 数据库学习使用文档:https://www.sjkjc.com/mysql/install-on-centos/
 #### solidity assembly:
 ###### link1:https://blog.csdn.net/qq_33842966/article/details/125947457
 ###### link2:https://zhuanlan.zhihu.com/p/531634672
