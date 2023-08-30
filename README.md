@@ -65,12 +65,4 @@ contract Storage {
 ##### 数组
 ###### 所有的局部变量都在堆栈上，所以要先加载到内存中然后才进行返回，因为return(x,x)从内存中进行返回。
 
-##### 安装abigen
-###### brew update => brew tap ethereum/ethereum => brew install ethereum => brew install solidity => brew install protobuf
-###### => git clone https://github.com/ethereum/go-ethereum.git => cd go-ethereum => make devtools => abigen --version
 
-##### IERC20.sol生成ERC20.go
-###### solc --abi IERC20.sol | awk '/JSON ABI/{x=1;next}x' > IERC20.abi
-###### solc --bin IERC20.sol | awk '/Binary:/{x=1;next}x' > IERC20.bin
-###### abigen --bin=IERC20.bin --abi=IERC20.abi --pkg=erc20 --out=Erc20.go
-###### 上述solc在.sol同级目录下生成IERC20.abi/IERC20.bin，使用abigen的方式在.sol同级目录下可生成Erc20.go文件
